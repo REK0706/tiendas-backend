@@ -12,6 +12,6 @@
     "body-parser": "^1.20.2"
   },
   "puppeteer": {
-    "cacheDirectory": ".cache/puppeteer"
+    "cacheDirectory": "/opt/render/project/.cache/puppeteer"
   }
 }
