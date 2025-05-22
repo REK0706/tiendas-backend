@@ -1,7 +1,5 @@
-
 import express from 'express';
-import puppeteer from 'puppeteer-core';
-import chrome from 'chrome-aws-lambda';
+import puppeteer from 'puppeteer';
 import bodyParser from 'body-parser';
 
 const app = express();
@@ -19,9 +17,8 @@ app.get('/datos', async (req, res) => {
 
   try {
     browser = await puppeteer.launch({
-      args: chrome.args,
-      executablePath: await chrome.executablePath,
-      headless: chrome.headless,
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
 
     const page = await browser.newPage();
@@ -44,7 +41,7 @@ app.get('/datos', async (req, res) => {
     while (true) {
       await page.waitForFunction(() =>
         document.querySelectorAll('td').length >= 55,
-        { timeout: 15000 }
+        { timeout: 30000 }
       );
 
       const pageData = await page.evaluate(() => {
@@ -74,6 +71,7 @@ app.get('/datos', async (req, res) => {
       allData.push(...pageData);
 
       const nextButton = await page.$('a.rz-paginator-next:not(.rz-state-disabled)');
+
       if (nextButton) {
         await nextButton.click();
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -90,6 +88,7 @@ app.get('/datos', async (req, res) => {
   }
 });
 
+// Ruta raíz opcional para verificar que el servidor está vivo
 app.get('/', (req, res) => {
   res.send('Servidor backend funcionando');
 });
