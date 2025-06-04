@@ -1,11 +1,9 @@
+
 import express from 'express';
 import puppeteer from 'puppeteer';
 import bodyParser from 'body-parser';
-import cors from 'cors'
 
 const app = express();
-app.use(cors());
-app.use(bodyParser.json());
 const PORT = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
@@ -16,16 +14,14 @@ app.get('/datos', async (req, res) => {
     password: 'ExGr2024%'
   };
 
-  let browser = null;
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
+  });
+
+  const page = await browser.newPage();
 
   try {
-    browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-
-    const page = await browser.newPage();
-
     await page.goto('http://212.132.122.69:9001/Identity/Account/Login?returnUrl=/', {
       waitUntil: 'networkidle2',
       timeout: 90000
@@ -44,7 +40,7 @@ app.get('/datos', async (req, res) => {
     while (true) {
       await page.waitForFunction(() =>
         document.querySelectorAll('td').length >= 55,
-        { timeout: 30000 }
+        { timeout: 15000 }
       );
 
       const pageData = await page.evaluate(() => {
@@ -74,7 +70,6 @@ app.get('/datos', async (req, res) => {
       allData.push(...pageData);
 
       const nextButton = await page.$('a.rz-paginator-next:not(.rz-state-disabled)');
-
       if (nextButton) {
         await nextButton.click();
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -86,14 +81,9 @@ app.get('/datos', async (req, res) => {
     await browser.close();
     res.json(allData);
   } catch (err) {
-    if (browser) await browser.close();
+    await browser.close();
     res.status(500).json({ error: 'Error al hacer scraping', detail: err.message });
   }
-});
-
-// Ruta raíz opcional para verificar que el servidor está vivo
-app.get('/', (req, res) => {
-  res.send('Servidor backend funcionando');
 });
 
 app.listen(PORT, () => {
